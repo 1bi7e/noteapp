@@ -1,8 +1,16 @@
 import tkinter as tk
 from tkinter import messagebox
 import re
+import os
+import openai
+from openai import OpenAI
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
+
+# Set your OpenAI API key here
+client = OpenAI(
+    api_key = "API_KEY",
+)
 
 # Function to extract video ID from URL
 def extract_video_id(url):
@@ -51,8 +59,35 @@ def get_transcript():
         transcript_text.delete("1.0", tk.END)
         transcript_text.insert(tk.END, clean_text)
 
+        # Send the cleaned transcript to ChatGPT and get the response
+        send_to_chatgpt(clean_text)
+
     except Exception as e:
         messagebox.showerror("API Error", f"An error occurred while fetching the transcript: {e}")
+
+# Function to send the cleaned transcript to ChatGPT
+def send_to_chatgpt(clean_text):
+    prompt = (f"Create a detailed note from the transcript given below. Create also 10 review questions "
+              f"that will help me understand the topic from the transcript.\n\n"
+              f"transcript: {clean_text}")
+
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a professional tutor."},
+                {"role": "user", "content": f"Create a detailed note from the transcript given below. Create also 10 review questions that will help me understand the topic from the transcript.\n\n{clean_text}"}
+            ]
+        )   
+        answer = completion.choices[0].message.content
+        print(answer)
+        
+        # Display the ChatGPT response in the text widget
+        response_text.delete("1.0", tk.END)
+        response_text.insert(tk.END, answer)
+
+    except Exception as e:
+        messagebox.showerror("ChatGPT API Error", f"An error occurred while getting the response from ChatGPT: {e}")
 
 # Create main application window
 root = tk.Tk()
@@ -66,8 +101,11 @@ url_entry.pack(pady=5)
 get_transcript_button = tk.Button(root, text="Get Transcript", command=get_transcript)
 get_transcript_button.pack(pady=10)
 
-transcript_text = tk.Text(root, height=20, width=80)
+transcript_text = tk.Text(root, height=10, width=80)
 transcript_text.pack(pady=10)
+
+response_text = tk.Text(root, height=10, width=80)
+response_text.pack(pady=10)
 
 # Run the application
 root.mainloop()
