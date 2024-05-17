@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
-import requests
 import re
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.formatters import TextFormatter
 
 # Function to extract video ID from URL
 def extract_video_id(url):
@@ -36,24 +37,29 @@ def get_transcript():
         return
 
     try:
-        # Replace 'API_URL' with the actual API endpoint you found on GitHub
-        response = requests.get(f"API_URL?video_id={video_id}")
-        response.raise_for_status()
-        transcript = response.json().get('transcript', 'No transcript available.')
+        # Fetch the transcript using YouTubeTranscriptApi
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        
+        # Format the transcript as Text
+        formatter = TextFormatter()
+        text_formatted = formatter.format_transcript(transcript)
 
-        # Display the transcript in the text widget
+        # Clean up the formatted text
+        clean_text = re.sub(r'\s+', ' ', text_formatted).strip()
+        
+        # Display the cleaned transcript in the text widget
         transcript_text.delete("1.0", tk.END)
-        transcript_text.insert(tk.END, transcript)
+        transcript_text.insert(tk.END, clean_text)
 
-    except requests.RequestException as e:
+    except Exception as e:
         messagebox.showerror("API Error", f"An error occurred while fetching the transcript: {e}")
 
 # Create main application window
 root = tk.Tk()
-root.title("YouTube Transcript Fetcher")
+root.title("Notes from YT")
 
 # Create and place widgets
-tk.Label(root, text="YouTube Video URL:").pack(pady=5)
+tk.Label(root, text="Paste YouTube video URL:").pack(pady=5)
 url_entry = tk.Entry(root, width=50)
 url_entry.pack(pady=5)
 
